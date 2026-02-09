@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>For Anjana ❤️</title>
+    <title>For Aadrija ❤️</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
@@ -109,11 +109,12 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.15);
             transform: scale(0.8) translateY(-20px);
             opacity: 0;
-            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             width: 85%;
             max-width: 380px;
             color: #333;
             border: 2px solid rgba(255,255,255,0.5);
+            z-index: 150;
         }
         
         #question-box.visible {
@@ -122,16 +123,19 @@
             pointer-events: auto; 
         }
 
+        /* Centering Box within heart */
         #question-box.fallen {
-            transform: scale(0.85) translateY(calc(50vh - 18%));
-            opacity: 0.95;
-            transition: all 2.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform: translate(-50%, -50%) scale(1);
+            left: 50%;
+            /* top is handled by JS for smooth heart tracking */
+            opacity: 1;
             pointer-events: auto;
+            transition: transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s;
         }
 
         #question-box h1 {
             font-size: clamp(1.2rem, 4.5vw, 1.8rem);
-            margin-bottom: 20px;
+            margin: 0;
         }
 
         .btn-row {
@@ -145,37 +149,6 @@
         #btn-yes { background-color: #6ab04c; }
         #btn-no { background-color: #eb4d4b; position: relative; }
 
-        /* --- Slideshow CSS --- */
-        .polaroid {
-            position: absolute;
-            top: 20%;
-            width: clamp(120px, 25vw, 200px);
-            padding: 10px;
-            background: white;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            opacity: 0;
-            transition: opacity 2s ease-in-out;
-            pointer-events: none;
-            z-index: 40;
-        }
-
-        /* Specific positioning */
-        #img-left {
-            left: 5%;
-            transform: rotate(-5deg);
-        }
-
-        #img-right {
-            right: 5%;
-            transform: rotate(5deg);
-        }
-
-        .polaroid img {
-            width: 100%;
-            border-radius: 2px;
-            display: block;
-        }
-
     </style>
 </head>
 <body>
@@ -188,21 +161,14 @@
     </div>
 
     <div id="prompt-container">
-        <div class="prompt-text">Hold down to make up</div>
-    </div>
-
-    <div class="polaroid" id="img-left">
-        <img id="photo-l" src="" alt="">
-    </div>
-    <div class="polaroid" id="img-right">
-        <img id="photo-r" src="" alt="">
+        <div class="prompt-text">Hold down</div>
     </div>
 
     <div id="question-layer" class="overlay">
         <div id="question-box">
-            <h1>Will you forever be my Valentine?</h1>
+            <h1>Will you be my official 2026 Valentine?</h1>
             <div class="btn-row">
-                <button class="btn" id="btn-yes">Yes, my strawbaby ❤️</button>
+                <button class="btn" id="btn-yes">Yes ❤️</button>
                 <button class="btn" id="btn-no">No 😠</button>
             </div>
         </div>
@@ -213,24 +179,6 @@
     </audio>
 
     <script>
-        // --- PHOTO CONFIGURATION (Matched to your screenshot) ---
-        // Ensure filenames match EXACTLY (case sensitive!)
-        const photoList = [
-            'pics/IMG_7636.JPG',
-            'pics/IMG_7637.JPG',
-            'pics/IMG_7638.JPG',
-            'pics/IMG_7639.JPG',
-            'pics/IMG_7640.JPG',
-            'pics/IMG_7641.JPG',
-            'pics/IMG_7642.JPG',
-            'pics/IMG_7643.JPG',
-            'pics/IMG_7644.JPG',
-            'pics/IMG_7645.JPG',
-            'pics/IMG_7646.JPG',
-            'pics/IMG_7647.JPG'
-        ];
-        // ---------------------------
-
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const audio = document.getElementById('bg-audio');
@@ -243,11 +191,6 @@
         const btnStart = document.getElementById('btn-start');
         const btnYes = document.getElementById('btn-yes');
         const btnNo = document.getElementById('btn-no');
-        
-        const divLeft = document.getElementById('img-left');
-        const divRight = document.getElementById('img-right');
-        const imgL = document.getElementById('photo-l');
-        const imgR = document.getElementById('photo-r');
 
         // Config
         let width, height, pixelRatio;
@@ -285,7 +228,6 @@
 
         // --- Init ---
         function init() {
-            // Stars
             for(let i=0; i<200; i++) {
                 stars.push({
                     x: (Math.random() * 4000) - 2000, 
@@ -294,7 +236,6 @@
                     blinkOffset: Math.random() * 100
                 });
             }
-            // Fireflies
             for(let i=0; i<40; i++) {
                 fireflies.push({
                     x: (Math.random() * 4000) - 2000,
@@ -305,7 +246,6 @@
                     offset: Math.random() * 100
                 });
             }
-            // Flowers
             const flowerCount = 15;
             const spread = 4000;
             for(let i=0; i<flowerCount; i++) {
@@ -347,49 +287,7 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // --- Slideshow Logic ---
-        function startSlideshow() {
-            if(photoList.length === 0) return;
-            
-            let idxL = 0;
-            let idxR = 1 % photoList.length; // Ensure different start
-
-            const updatePhotos = () => {
-                // Fade out
-                divLeft.style.opacity = 0;
-                divRight.style.opacity = 0;
-
-                setTimeout(() => {
-                    // Change Images
-                    imgL.src = photoList[idxL];
-                    imgR.src = photoList[idxR];
-
-                    // Increment indices
-                    idxL = (idxL + 2) % photoList.length;
-                    idxR = (idxR + 2) % photoList.length;
-
-                    // Fade In
-                    divLeft.style.opacity = 0.9;
-                    divRight.style.opacity = 0.9;
-                }, 2000);
-            };
-
-            // Initial Load
-            imgL.src = photoList[idxL];
-            imgR.src = photoList[idxR];
-            idxL = (idxL + 2) % photoList.length;
-            idxR = (idxR + 2) % photoList.length;
-            
-            setTimeout(() => {
-                divLeft.style.opacity = 0.9;
-                divRight.style.opacity = 0.9;
-            }, 500);
-
-            setInterval(updatePhotos, 6000);
-        }
-
         // --- Interaction ---
-
         btnStart.addEventListener('click', () => {
             startScreen.classList.add('hidden');
             gameState = 'WALKING';
@@ -408,7 +306,6 @@
         }, {passive: false});
         window.addEventListener('touchend', endAction);
 
-        // Run Away "No" Button
         function moveNoBtn() {
             if(gameState !== 'ASKING') return;
             const range = 50;
@@ -419,18 +316,12 @@
         btnNo.addEventListener('mouseover', moveNoBtn);
         btnNo.addEventListener('touchstart', (e) => { e.preventDefault(); moveNoBtn(); });
 
-        // Yes Button
         btnYes.addEventListener('click', () => {
             gameState = 'CELEBRATING';
             celebrationStartTime = Date.now(); 
-            
-            questionBox.innerHTML = "<h1 style='color:#333'>Yay!! ❤️</h1><p style='color:#555'>(I love you a little extra today)</p>";
-            
-            // Make the question box fall to the bottom immediately
+            questionBox.innerHTML = "<h1>Yay!! ❤️</h1>";
             questionBox.classList.add('fallen');
             
-            startSlideshow();
-
             let vol = audio.volume;
             const fade = setInterval(() => {
                 vol += 0.05;
@@ -438,11 +329,9 @@
                 audio.volume = vol;
             }, 100);
 
-            // Mobile-responsive heart size
             const maxHeartSize = Math.min(width, height) * 0.6;
             targetHeartSize = Math.min(500, maxHeartSize);
 
-            // Confetti
             for(let i=0; i<150; i++) {
                 confetti.push({
                     x: 0, y: -200, 
@@ -475,7 +364,6 @@
         }
 
         // --- Drawing ---
-
         function drawNaturalFlower(ctx, x, y, scale, color) {
             ctx.save();
             ctx.translate(x, y);
@@ -511,7 +399,6 @@
         function drawFace(ctx, x, y, facingRight) {
             const eyeOffset = facingRight ? 6 : -6;
             const lookY = (gameState === 'PANNING' || gameState === 'ASKING') ? -5 : 0;
-            
             ctx.fillStyle = '#2d3436';
             ctx.strokeStyle = '#2d3436';
             ctx.lineWidth = 2;
@@ -542,14 +429,10 @@
             ctx.globalAlpha = f.life;
             f.particles.forEach(p => {
                 ctx.fillStyle = p.color;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 2, 0, Math.PI*2);
-                ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
             });
             ctx.restore();
         }
-
-        // --- Logic ---
 
         function update() {
             camera.x += (targetCamera.x - camera.x) * 0.05;
@@ -562,7 +445,6 @@
             if (gameState === 'WALKING') {
                 targetHeartSize = 0;
                 targetHeartY = (height/2 + 50) - 100; 
-                
                 if(isHolding) {
                     walkProgress += 0.004;
                     promptContainer.style.opacity = 0;
@@ -571,7 +453,6 @@
                     promptContainer.style.opacity = 1;
                 }
                 walkProgress = Math.max(0, Math.min(1, walkProgress));
-
                 if(walkProgress === 1) {
                     gameState = 'MEETING';
                     targetHeartSize = 40; 
@@ -580,17 +461,13 @@
             }
             
             if (gameState === 'ZOOMING') {
-                targetCamera.zoom = 2.2; 
-                targetCamera.y = 50; 
+                targetCamera.zoom = 2.2; targetCamera.y = 50; 
                 if(Math.abs(camera.zoom - 2.2) < 0.1) setTimeout(() => gameState = 'PANNING', 800);
             }
 
             if (gameState === 'PANNING') {
-                targetCamera.zoom = 1.4;
-                targetCamera.y = 100; 
-                targetHeartSize = 60; 
-                targetHeartY = (height/2 + 50) - 100; 
-
+                targetCamera.zoom = 1.4; targetCamera.y = 100; 
+                targetHeartSize = 60; targetHeartY = (height/2 + 50) - 100; 
                 if(Math.abs(camera.y - 100) < 5) {
                     gameState = 'ASKING';
                     questionLayer.classList.add('active-ui');
@@ -599,50 +476,36 @@
             }
 
             if(gameState === 'CELEBRATING') {
-                targetCamera.zoom = 1.0;
-                targetCamera.y = 0;
-                targetHeartY = 100; 
-                
-                // Mobile-responsive heart size
+                targetCamera.zoom = 1.0; targetCamera.y = 0; targetHeartY = 150; 
                 const maxHeartSize = Math.min(width, height) * 0.6;
                 targetHeartSize = Math.min(500, maxHeartSize);
 
-                // Spawn Fireworks
+                // Update HTML box position to follow the heart's pulsing Y
+                const pulse = Math.sin(Date.now() / 300) * 5;
+                const actualHeartY = height/2 + heartY + pulse + 80; // Offset for center logic
+                questionBox.style.top = `${actualHeartY}px`;
+
                 if(Math.random() < 0.01) { 
                     const fwX = (Math.random() * width) - width/2;
                     const fwY = (Math.random() * 300) - 200; 
                     const particles = [];
                     const color = `hsl(${Math.random()*360}, 100%, 60%)`;
                     for(let i=0; i<30; i++) {
-                        particles.push({
-                            x: 0, y: 0,
-                            vx: (Math.random() - 0.5) * 10,
-                            vy: (Math.random() - 0.5) * 10,
-                            color: color
-                        });
+                        particles.push({ x: 0, y: 0, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10, color: color });
                     }
                     fireworks.push({ x: fwX, y: fwY, life: 1, particles: particles });
                 }
             }
 
-            // Update Fireworks
             for(let i=fireworks.length-1; i>=0; i--) {
                 let f = fireworks[i];
                 f.life -= 0.02;
-                f.particles.forEach(p => {
-                    p.x += p.vx; p.y += p.vy; p.vy += 0.1;
-                });
+                f.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.1; });
                 if(f.life <= 0) fireworks.splice(i, 1);
             }
 
-            // Shooting Stars
             if (walkProgress > 0.8 && Math.random() < 0.01) {
-                shootingStars.push({
-                    x: Math.random() * 2000 - 1000,
-                    y: -Math.random() * 500 - 100,
-                    len: Math.random() * 50 + 20,
-                    life: 1.0
-                });
+                shootingStars.push({ x: Math.random() * 2000 - 1000, y: -Math.random() * 500 - 100, len: Math.random() * 50 + 20, life: 1.0 });
             }
             for(let i = shootingStars.length - 1; i >= 0; i--) {
                 let s = shootingStars[i];
@@ -650,18 +513,14 @@
                 if(s.life <= 0) shootingStars.splice(i, 1);
             }
 
-            // Fireflies
             fireflies.forEach(f => {
                 f.x += f.speedX; f.y += f.speedY;
                 if(f.x > 3000 || f.x < -3000) f.speedX *= -1;
             });
 
-            // Falling Petals - Start at 0.1 progress
             if (walkProgress > 0.1) { 
                 petals.forEach(p => {
-                    p.y += p.speedY;
-                    p.x += (Math.sin(Date.now() / 1000 + p.swayOffset) * 2) + 0.5;
-                    
+                    p.y += p.speedY; p.x += (Math.sin(Date.now() / 1000 + p.swayOffset) * 2) + 0.5;
                     if(p.y > height) p.y = -10; 
                     if(p.x > width + 10) p.x = -10;
                     if(p.x < -10) p.x = width + 10;
@@ -671,8 +530,6 @@
 
         function render() {
             ctx.clearRect(0,0,width,height);
-
-            // Sky
             ctx.fillStyle = getSkyColor(walkProgress);
             ctx.fillRect(0,0,width,height);
 
@@ -681,37 +538,27 @@
             ctx.scale(camera.zoom, camera.zoom);
             ctx.translate(-width/2 + camera.x, -height/2 + camera.y);
 
-            // Stars
             if(walkProgress > 0.1) {
                 ctx.fillStyle = 'white';
                 stars.forEach(s => {
                     const alpha = Math.min(walkProgress, Math.abs(Math.sin((Date.now()+s.blinkOffset)/600)));
                     ctx.globalAlpha = alpha;
-                    ctx.beginPath();
-                    ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
-                    ctx.fill();
+                    ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
                 });
                 ctx.globalAlpha = 1;
-
-                // Moon
                 ctx.shadowBlur = 50; ctx.shadowColor = '#fdfd96'; ctx.fillStyle = '#fdfd96';
                 ctx.globalAlpha = Math.max(0, walkProgress - 0.2);
                 ctx.beginPath(); ctx.arc(300, -300, 50, 0, Math.PI*2); ctx.fill();
                 ctx.shadowBlur = 0; ctx.globalAlpha = 1;
             }
 
-            // Fireworks
             fireworks.forEach(f => drawFirework(ctx, f));
-
             shootingStars.forEach(s => { 
-                ctx.globalAlpha = s.life; 
-                ctx.strokeStyle = 'white'; ctx.lineWidth = 2;
+                ctx.globalAlpha = s.life; ctx.strokeStyle = 'white'; ctx.lineWidth = 2;
                 ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.len, s.y - s.len); ctx.stroke();
-                ctx.beginPath(); ctx.arc(s.x, s.y, 2, 0, Math.PI*2); ctx.fillStyle = 'white'; ctx.fill();
                 ctx.globalAlpha = 1; 
             });
 
-            // Fireflies (Rare in Celebration)
             if(walkProgress > 0.5) {
                 fireflies.forEach((f, index) => {
                     if (gameState === 'CELEBRATING' && index % 8 !== 0) return; 
@@ -723,90 +570,54 @@
                 });
             }
 
-            // Ground
             const groundY = height/2 + 50;
             ctx.fillStyle = getGrassColor(walkProgress);
             ctx.beginPath(); ctx.rect(-5000, groundY, 10000, 2000); ctx.fill();
 
-            // Flowers
             flowers.forEach(f => {
-                let growth = (walkProgress - f.growThreshold) * 4; 
-                growth = Math.max(0, Math.min(1, growth));
+                let growth = Math.max(0, Math.min(1, (walkProgress - f.growThreshold) * 4));
                 if(growth > 0) drawNaturalFlower(ctx, f.x, groundY + f.yOffset, growth, f.color);
             });
 
-            // Characters - MOBILE RESPONSIVE
-            const centerDist = Math.min(width * 0.4, 300); // Scale with screen width
+            const centerDist = Math.min(width * 0.4, 300);
             const dist = centerDist * (1 - walkProgress); 
             let p1x = width/2 - dist - 35; 
             let p2x = width/2 + dist + 35;
-            
-            let bounceY = 0;
-            let stretchX = 1;
-            let stretchY = 1;
+            let bounceY = 0, stretchX = 1, stretchY = 1;
             
             if (gameState === 'WALKING' && isHolding) {
                 const bouncePhase = Math.abs(Math.sin(Date.now()/200)); 
-                bounceY = bouncePhase * -5;
-                stretchX = 1 + (bouncePhase * 0.05);
-                stretchY = 1 - (bouncePhase * 0.05);
+                bounceY = bouncePhase * -5; stretchX = 1 + (bouncePhase * 0.05); stretchY = 1 - (bouncePhase * 0.05);
             } else if (gameState === 'CELEBRATING') {
                 const elapsed = Date.now() - celebrationStartTime;
                 const walkPhase = Math.sin(elapsed / 3000); 
                 const bouncePhase = Math.abs(Math.sin(Date.now()/200)); 
-                
-                const wanderRange = (width / 2) - 100;
-                const wanderOffset = walkPhase * wanderRange;
-                
-                p1x += wanderOffset;
-                p2x += wanderOffset;
-                
-                bounceY = bouncePhase * -5;
-                stretchX = 1 + (bouncePhase * 0.03);
-                stretchY = 1 - (bouncePhase * 0.03);
+                const wanderOffset = walkPhase * ((width / 2) - 100);
+                p1x += wanderOffset; p2x += wanderOffset;
+                bounceY = bouncePhase * -5; stretchX = 1 + (bouncePhase * 0.03); stretchY = 1 - (bouncePhase * 0.03);
             }
 
             ctx.lineWidth = 3; ctx.strokeStyle = '#2d3436';
-            
-            ctx.save();
-            ctx.translate(p1x, groundY - 25 + bounceY);
-            ctx.scale(stretchX, stretchY);
-            ctx.fillStyle = '#74b9ff';
-            ctx.beginPath(); ctx.arc(0, 0, 25, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-            drawFace(ctx, 0, 0, true);
-            ctx.restore();
+            ctx.save(); ctx.translate(p1x, groundY - 25 + bounceY); ctx.scale(stretchX, stretchY);
+            ctx.fillStyle = '#74b9ff'; ctx.beginPath(); ctx.arc(0, 0, 25, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+            drawFace(ctx, 0, 0, true); ctx.restore();
 
-            ctx.save();
-            ctx.translate(p2x, groundY - 25 + bounceY);
-            ctx.scale(stretchX, stretchY);
-            ctx.fillStyle = '#fd79a8';
-            ctx.beginPath(); ctx.arc(0, 0, 25, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-            drawFace(ctx, 0, 0, false);
-            ctx.restore();
+            ctx.save(); ctx.translate(p2x, groundY - 25 + bounceY); ctx.scale(stretchX, stretchY);
+            ctx.fillStyle = '#fd79a8'; ctx.beginPath(); ctx.arc(0, 0, 25, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+            drawFace(ctx, 0, 0, false); ctx.restore();
 
             if (walkProgress > 0.95) {
                 const handY = groundY - 15 + bounceY;
-                ctx.beginPath(); 
-                ctx.moveTo(p1x + 10, handY); 
-                ctx.lineTo((p1x + p2x)/2, handY + 10); 
-                ctx.lineTo(p2x - 10, handY); 
-                ctx.stroke();
-            } else if (walkProgress > 0.1) {
-                ctx.beginPath(); ctx.moveTo(p1x + 10, groundY - 15 + bounceY); ctx.lineTo(p1x + 25, groundY - 15 + bounceY - (walkProgress*10)); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(p2x - 10, groundY - 15 + bounceY); ctx.lineTo(p2x - 25, groundY - 15 + bounceY - (walkProgress*10)); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(p1x + 10, handY); ctx.lineTo((p1x + p2x)/2, handY + 10); ctx.lineTo(p2x - 10, handY); ctx.stroke();
             }
 
-            // THE HEART
             if(gameState !== 'WALKING') {
                 const pulse = (gameState === 'ASKING' || gameState === 'CELEBRATING') ? Math.sin(Date.now() / 300) * 5 : 0;
-                if(gameState === 'ASKING' || gameState === 'CELEBRATING') {
-                    ctx.shadowColor = '#ff4757'; ctx.shadowBlur = 20;
-                }
+                if(gameState === 'ASKING' || gameState === 'CELEBRATING') { ctx.shadowColor = '#ff4757'; ctx.shadowBlur = 20; }
                 drawHeart(ctx, width/2, heartY, heartSize + pulse);
                 ctx.shadowBlur = 0;
             }
 
-            // Confetti
             if(gameState === 'CELEBRATING') {
                 confetti.forEach(p => {
                     p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.rotation += 5;
@@ -814,38 +625,24 @@
                     ctx.fillStyle = p.color; ctx.fillRect(-4,-4,8,8); ctx.restore();
                 });
             }
-
             ctx.restore();
 
-            // Falling Petals
             if (walkProgress > 0.1) { 
                 petals.forEach(p => {
-                    ctx.fillStyle = 'rgba(255, 192, 203, 0.7)'; 
-                    ctx.save();
-                    ctx.translate(p.x, p.y);
-                    ctx.rotate(p.rotation * Math.PI/180);
-                    ctx.beginPath();
-                    ctx.moveTo(0,0);
-                    ctx.bezierCurveTo(p.size/2, -p.size/2, p.size, -p.size/2, p.size, 0);
-                    ctx.bezierCurveTo(p.size, p.size/2, p.size/2, p.size/2, 0, 0);
-                    ctx.fill();
-                    ctx.restore();
+                    ctx.fillStyle = 'rgba(255, 192, 203, 0.7)'; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rotation * Math.PI/180);
+                    ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(p.size/2, -p.size/2, p.size, -p.size/2, p.size, 0);
+                    ctx.bezierCurveTo(p.size, p.size/2, p.size/2, p.size/2, 0, 0); ctx.fill(); ctx.restore();
                 });
             }
 
-            // Vignette
             const gradient = ctx.createRadialGradient(width/2, height/2, height/3, width/2, height/2, height);
-            gradient.addColorStop(0, 'rgba(0,0,0,0)');
-            gradient.addColorStop(1, 'rgba(0,0,0,0.3)');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0,0,width,height);
+            gradient.addColorStop(0, 'rgba(0,0,0,0)'); gradient.addColorStop(1, 'rgba(0,0,0,0.3)');
+            ctx.fillStyle = gradient; ctx.fillRect(0,0,width,height);
 
             update();
             requestAnimationFrame(render);
         }
-
         render();
-
     </script>
 </body>
 </html>
