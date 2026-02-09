@@ -127,7 +127,6 @@
         #question-box.fallen {
             transform: translate(-50%, -50%) scale(1);
             left: 50%;
-            /* top is handled by JS for smooth heart tracking */
             opacity: 1;
             pointer-events: auto;
             transition: transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s;
@@ -136,6 +135,7 @@
         #question-box h1 {
             font-size: clamp(1.2rem, 4.5vw, 1.8rem);
             margin: 0;
+            transition: all 0.5s ease;
         }
 
         .btn-row {
@@ -166,7 +166,7 @@
 
     <div id="question-layer" class="overlay">
         <div id="question-box">
-            <h1>Will you be my official 2026 Valentine?</h1>
+            <h1 id="question-text">Will you be my official 2026 Valentine?</h1>
             <div class="btn-row">
                 <button class="btn" id="btn-yes">Yes ❤️</button>
                 <button class="btn" id="btn-no">No 😠</button>
@@ -174,9 +174,7 @@
         </div>
     </div>
 
-    <audio id="bg-audio" loop>
-        <source src="yes.mp3" type="audio/mp3">
-    </audio>
+    <audio id="bg-audio" loop></audio>
 
     <script>
         const canvas = document.getElementById('canvas');
@@ -188,9 +186,21 @@
         const promptContainer = document.getElementById('prompt-container');
         const questionLayer = document.getElementById('question-layer');
         const questionBox = document.getElementById('question-box');
+        const questionText = document.getElementById('question-text');
         const btnStart = document.getElementById('btn-start');
         const btnYes = document.getElementById('btn-yes');
         const btnNo = document.getElementById('btn-no');
+
+        // --- MUSIC CONFIGURATION ---
+        // Add your song filenames here. 
+        // Cycles through 1 -> 2 -> 3 -> 1...
+        const songs = [
+            "yes.mp3", 
+            "Tiramisu.mp3",
+            "lwc.mp3",
+            "K9.mp3"
+        ];
+        let currentSongIndex = 0;
 
         // Config
         let width, height, pixelRatio;
@@ -291,6 +301,9 @@
         btnStart.addEventListener('click', () => {
             startScreen.classList.add('hidden');
             gameState = 'WALKING';
+            
+            // Set initial song
+            audio.src = songs[currentSongIndex];
             audio.volume = 0.09;
             audio.play().catch(console.error);
         });
@@ -306,15 +319,18 @@
         }, {passive: false});
         window.addEventListener('touchend', endAction);
 
-        function moveNoBtn() {
-            if(gameState !== 'ASKING') return;
-            const range = 50;
-            const dx = (Math.random() - 0.5) * range * 2;
-            const dy = (Math.random() - 0.5) * range * 2;
-            btnNo.style.transform = `translate(${dx}px, ${dy}px)`;
-        }
-        btnNo.addEventListener('mouseover', moveNoBtn);
-        btnNo.addEventListener('touchstart', (e) => { e.preventDefault(); moveNoBtn(); });
+        // --- NO BUTTON LOGIC ---
+        btnNo.addEventListener('click', () => {
+            // 1. Switch to next song (Looping)
+            currentSongIndex = (currentSongIndex + 1) % songs.length;
+            audio.src = songs[currentSongIndex];
+            audio.play().catch(console.error);
+
+            // 2. Change Text
+            questionText.innerText = "How about now?";
+            
+            // 3. Keep Button Visible (No removal)
+        });
 
         btnYes.addEventListener('click', () => {
             gameState = 'CELEBRATING';
